@@ -1,0 +1,49 @@
+package main
+
+import (
+    "fmt"
+    "log"
+    "net/http"
+    {{if eq .ConfigSource "flags"}} "flag" {{else}} "os" {{end}}
+    {{if or (eq .RouterType "gorilla/mux") (eq .RouterType "httprouter")}} "{{.RouterImportPath}}" {{end}}
+)
+
+func main() {
+    {{if eq .ConfigSource "flags"}}
+    // Example flag-based configuration
+    var port string
+    flag.StringVar(&port, "port", "8080", "Define the port the server will listen on")
+    flag.Parse()
+    {{else}}
+    // Example environment variable-based configuration
+    port := os.Getenv("PORT")
+    if port == "" {
+        port = "8080" // default
+    }
+    {{end}}
+    fmt.Println("Starting application on port:", port)
+
+    {{if eq .RouterType "gorilla/mux"}}
+    // Gorilla Mux router setup
+    router := mux.NewRouter()
+    router.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
+        fmt.Fprintln(w, "Hello, this application is using Gorilla Mux!")
+    })
+    log.Println(http.ListenAndServe(":" + port, router))
+
+    {{else if eq .RouterType "httprouter"}}
+    // HttpRouter router setup
+    router := httprouter.New()
+    router.GET("/", func(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
+        fmt.Fprintln(w, "Hello, this application is using HttpRouter!")
+    })
+    log.Println(http.ListenAndServe(":" + port, router))
+
+    {{else}}
+    // Fallback to net/http
+    http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
+        fmt.Fprintln(w, "Welcome to the application using net/http!")
+    })
+    log.Fatal(http.ListenAndServe(":" + port, nil))
+    {{end}}
+}
